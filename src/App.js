@@ -56,17 +56,28 @@ const APIKEY = "93c765ec";
 export default function App() {
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
-  const [isLoadin, setIsLoading] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   useEffect(function () {
     async function fetchMovies() {
       setIsLoading(true);
-      const res = await fetch(
-        `http://www.omdbapi.com/?apikey=${APIKEY}&s=interstellar`
-      );
-      const data = await res.json();
-      setMovies(data.Search);
-      setIsLoading(false);
+      try {
+        const res = await fetch(
+          `http://www.omdbapi.com/?apikey=${APIKEY}&s=interstellar`
+        );
+
+        if (!res.ok) throw new Error("Resource not found");
+
+        const data = await res.json();
+
+        if (!data.Response) throw new Error("Movies not found");
+
+        setMovies(data.Search);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setIsLoading(false);
+      }
     }
     fetchMovies();
   }, []);
@@ -79,7 +90,11 @@ export default function App() {
         <NumResults movies={movies} />
       </NavBar>
       <Main>
-        <Box>{isLoadin ? <Loader /> : <MoviesList movies={movies} />}</Box>
+        <Box>
+          {<MoviesList movies={movies} />}
+          {error && <Error message={error} />}
+          {isLoading && <Loader />}
+        </Box>
         <Box>
           <WatchedSummary watched={watched} />
           <WatchedMoviesList watched={watched} />
@@ -89,6 +104,14 @@ export default function App() {
     // <>
     //   <StarRating maxRating={10} />
     // </>
+  );
+}
+
+function Error({ message }) {
+  return (
+    <p className="error">
+      <span>⛔</span> {message}
+    </p>
   );
 }
 
